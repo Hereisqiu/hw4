@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Campus Customs: App Check</title>
+<style>
+  :root { --pink: #ff4fa3; --bg: #0a0a0a; --panel: #151515; --line: #2a2a2a; --text: #f5f5f5; --muted: #a3a3a3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { background: var(--pink); color: #000; padding: 2rem; text-align: center; }
+  header h1 { margin: 0; font-size: 2rem; letter-spacing: .03em; text-transform: uppercase; }
+  header p { margin: .3rem 0 0; font-weight: 600; }
+  main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .meta { color: var(--muted); font-size: .9rem; border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; background: var(--panel); }
+  section { margin-top: 2.5rem; padding: 1.5rem; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--pink); border-radius: 14px; }
+  h2 { margin: 0 0 .25rem; }
+  .tag { display: inline-block; background: var(--pink); color: #000; font-weight: 800; font-size: .75rem; padding: .15rem .6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: .08em; }
+  figure { margin: 1rem 0 0; }
+  img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+  .proof { margin-top: 1rem; }
+  table { border-collapse: collapse; margin-top: .75rem; font-size: .9rem; }
+  th, td { border: 1px solid var(--line); padding: .35rem .75rem; text-align: left; }
+  th { background: #1f1f1f; }
+  code { color: var(--pink); }
+  .pass { color: #4ade80; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Campus Customs: App Check</h1>
+  <p>Problem 11 · Site testing of the running website</p>
+</header>
+<main>
+  <p class="meta">
+    Tested on the running app: React/Vite frontend at <code>http://localhost:5173</code> and FastAPI + PydanticAI backend
+    (<code>uvicorn main:app --port 8000</code>, model <code>gpt-5.6-luna</code> via Portkey), browser viewport 1280×800.
+    Expected values were checked with direct SQL queries against <code>data/campus_customs.db</code>.
+  </p>
+
+  <section id="inventory">
+    <span class="tag">Check 1</span>
+    <h2>Chat returns accurate inventory and price from the database</h2>
+    <figure>
+      <img src="app_check_images/inventory.png" alt="Chat on the Basic Hoodie Big Yale product page answering price and stock for XL and S" />
+      <figcaption>
+        On the Basic Hoodie Big Yale page, the shopper asks "How many of this hoodie are left in XL and S, and what does it cost?".
+        Dan replies "$68.00. We have 2 left in XL and 5 left in S, XL is running low!"
+      </figcaption>
+    </figure>
+    <div class="proof">
+      <p>This shows the agent identified the current product from page context, called its stock and price tools, and quoted exactly the database values:</p>
+      <table>
+        <tr><th>SQL result</th><th>price</th><th>size</th><th>quantity</th><th>Chat said</th></tr>
+        <tr><td>Basic Hoodie Big Yale</td><td>68.0</td><td>XL</td><td>2</td><td class="pass">$68.00 · 2 left ✔</td></tr>
+        <tr><td>Basic Hoodie Big Yale</td><td>68.0</td><td>S</td><td>5</td><td class="pass">5 left ✔</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="cards">
+    <span class="tag">Check 2</span>
+    <h2>Category question shows dynamic product cards on the page</h2>
+    <figure>
+      <img src="app_check_images/hoodie_cards.png" alt="Assistant picks section showing 27 hoodie cards after asking what hoodies do you have" />
+      <figcaption>
+        Asking "What hoodies do you have?" makes Dan reply with a short summary ("27 hoodies, from $45.00–$88.00"), and an
+        <strong>Assistant picks · Hoodies</strong> section appears on the page with 27 cards (image, name, price, short description).
+      </figcaption>
+    </figure>
+    <p class="proof">
+      This shows that search results pass as structured data from the agent (<code>product_ids</code>) through the API (<code>ProductCard[]</code>)
+      to the page. The 27 cards match the 27 catalogue rows whose name or type contains "hood".
+    </p>
+    <figure>
+      <img src="app_check_images/card_detail.png" alt="Product detail page for Champion Full Zip Hood opened from a chat card" />
+      <figcaption>
+        Clicking the third chat card (Champion Full Zip Hood) opens its detail page: large image, $88.00, description, colors,
+        and stock for every size. So chat cards link to the same product pages as the catalogue.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="usability">
+    <span class="tag">Check 3</span>
+    <h2>Problem 9 usability feature: category, size-in-stock filter, sort and stock badges</h2>
+    <figure>
+      <img src="app_check_images/filters.png" alt="Products page filtered to hoodies in stock in XL sorted by price low to high with low-stock badges" />
+      <figcaption>
+        Products page with <strong>Hoodies</strong> selected, <strong>In stock in: XL</strong>, and
+        <strong>Sort: Price low to high</strong> (URL <code>/products?category=hoodies&amp;size=XL&amp;sort=price-asc</code>).
+        It shows 21 items, cheapest first ($45.00 Tennis hoodie), with pink "Only 2 left in XL" badges.
+      </figcaption>
+    </figure>
+    <p class="proof">
+      This shows the filters and badges use live inventory. SQL finds exactly <strong>21</strong> hoodies with XL quantity &gt; 0, the cheapest is
+      Yale Sports Hoodie Tennis at $45.00, and Basic Hoodie Big Yale has 2 in XL, matching its "Only 2 left in XL" badge.
+      <span class="pass">✔</span>
+    </p>
+  </section>
+</main>
+</body>
+</html>
